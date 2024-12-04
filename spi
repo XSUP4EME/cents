@@ -1,1 +1,151 @@
+#!/bin/bash
 
+firew1 () {
+    iptables -I INPUT -p tcp --dport 3128 -j ACCEPT
+    service iptables save
+}
+
+firew2 () {
+    iptables -I INPUT -p tcp --dport 3128 -j ACCEPT
+    iptables-save
+}
+
+rhel5 () {
+    rpm -Uvh http://flexbox.sourceforge.net/centos/5/i386/flexbox-release-1-4.3.noarch.rpm
+    yum install perl-DBI libecap squid httpd -y
+    usrn="amarx"
+    echo "amarx:$(/usr/bin/openssl passwd -crypt amarx)" > /etc/squid/passwd
+    case $vsysarch in
+            32) wget -O /etc/squid/squid.conf https://raw.githubusercontent.com/icharisofcc/proxy/master/spi-rhel5632.conf --no-check-certificate;;
+            64) wget -O /etc/squid/squid.conf https://raw.githubusercontent.com/icharisofcc/proxy/master/spi-rhel5664.conf --no-check-certificate;;
+    esac
+    touch /etc/squid/blacklist.acl
+    service squid restart && chkconfig squid on
+    service httpd stop && chkconfig httpd off
+    firew1
+}
+
+rhel6 () {
+    yum install squid httpd-tools -y
+    usrn="amarx"
+    echo "amarx:$(/usr/bin/openssl passwd -crypt amarx)" > /etc/squid/passwd
+    case $vsysarch in
+            32) wget -O /etc/squid/squid.conf https://raw.githubusercontent.com/icharisofcc/proxy/master/spi-rhel5632.conf --no-check-certificate;;
+            64) wget -O /etc/squid/squid.conf https://raw.githubusercontent.com/icharisofcc/proxy/master/spi-rhel5664.conf --no-check-certificate;;
+    esac
+    touch /etc/squid/blacklist.acl
+    service squid restart && chkconfig squid on
+    firew1    
+}
+
+rhel7 () {
+    yum install nano dos2unix squid httpd-tools -y
+    usrn="amarx"
+    echo "amarx:$(/usr/bin/openssl passwd -crypt amarx)" > /etc/squid/passwd
+    wget -O /etc/squid/squid.conf https://raw.githubusercontent.com/icharisofcc/proxy/master/spi-rhel7.conf --no-check-certificate
+    touch /etc/squid/blacklist.acl
+    systemctl restart squid.service && systemctl enable squid.service
+    firew2
+}
+
+deb () {
+    apt-get update
+    apt-get install apache2-utils squid3 -y
+    usrn="amarx"
+    echo "amarx:$(/usr/bin/openssl passwd -crypt amarx)" > /etc/squid3/passwd
+    wget -O /etc/squid3/squid.conf https://raw.githubusercontent.com/icharisofcc/proxy/master/spi-debian.conf --no-check-certificate
+    touch /etc/squid3/blacklist.acl
+    service squid3 restart && update-rc.d squid3 defaults
+    firew2
+}
+
+deb8 () {
+    apt-get update
+    apt-get install apache2-utils squid3 -y
+    usrn="amarx"
+    echo "amarx:$(/usr/bin/openssl passwd -crypt amarx)" > /etc/squid3/passwd
+    wget -O /etc/squid3/squid.conf https://raw.githubusercontent.com/icharisofcc/proxy/master/spi-jessie.conf --no-check-certificate
+    touch /etc/squid3/blacklist.acl
+    service squid3 restart && update-rc.d squid3 defaults
+    firew2
+}
+
+ubt () {
+    apt-get update
+    apt-get install nano dos2unix apache2-utils squid3 -y
+    usrn="amarx"
+    echo "amarx:$(/usr/bin/openssl passwd -crypt amarx)" > /etc/squid3/passwd
+    wget -O /etc/squid3/squid.conf https://raw.githubusercontent.com/icharisofcc/proxy/master/spi-ubuntu.conf --no-check-certificate
+    cp /etc/init/squid3.conf /etc/init.d/squid3
+    touch /etc/squid3/blacklist.acl    
+    service squid3 restart && update-rc.d squid3 defaults
+    firew2
+}
+
+ubt_ip () {
+    apt-get update
+    apt-get install nano dos2unix apache2-utils squid3 -y
+    wget -O /etc/squid3/squid.conf https://raw.githubusercontent.com/icharisofcc/proxy/master/spi-ubuntu_ip_auth.conf --no-check-certificate
+    cp /etc/init/squid3.conf /etc/init.d/squid3
+    touch /etc/squid3/blacklist.acl
+    service squid3 restart && update-rc.d squid3 defaults
+    firew2
+}
+
+ubt_null () {
+    apt-get update
+    apt-get install nano dos2unix apache2-utils squid3 -y
+    wget -O /etc/squid3/squid.conf https://raw.githubusercontent.com/icharisofcc/proxy/master/spi-ubuntu_no_auth.conf --no-check-certificate
+    cp /etc/init/squid3.conf /etc/init.d/squid3
+    touch /etc/squid3/blacklist.acl
+    service squid3 restart && update-rc.d squid3 defaults
+    firew2
+}
+
+fed () {
+    yum install squid httpd-tools -y
+    usrn="amarx"
+    echo "amarx:$(/usr/bin/openssl passwd -crypt amarx)" > /etc/squid/passwd
+    case $vsysarch in
+        32) wget -O /etc/squid/squid.conf https://raw.githubusercontent.com/icharisofcc/proxy/master/spi-fedora32.conf --no-check-certificate;;
+        64) wget -O /etc/squid/squid.conf https://raw.githubusercontent.com/icharisofcc/proxy/master/spi-rhel7.conf --no-check-certificate;;
+    esac
+    touch /etc/squid/blacklist.acl
+    systemctl restart squid && systemctl enable squid
+    firew2
+}
+
+dinfo () {
+    echo "Squid Proxy Installer $vspiversion Build $vspibuild"
+    echo "You are using builds from the $vbranch branch"
+    echo ""
+    echo "Usage: bash spi <option>"
+    echo "Example (Debian 8): bash spi -jessie"
+    echo ""
+    echo "Options:"
+    echo "-rhel5   -- RHEL 5 Linux distributions"
+    echo "-rhel6   -- RHEL 6 Linux distributions"
+    echo "-rhel7   -- RHEL 7 Linux distributions"
+    echo "-debian  -- Debian Squeeze 6 & Wheezy 7"
+    echo "-jessie  -- Debian Jessie 8"
+    echo "-ubuntu  -- Ubuntu"
+    echo "-fedora  -- Fedora"
+}
+
+vspiversion=2.0
+vspibuild=2017
+vbranch=Stable
+vsysarch=$(getconf LONG_BIT)
+
+case $1 in
+    '-rhel5') rhel5;;
+    '-rhel6') rhel6;;
+    '-rhel7') rhel7;;
+    '-debian') deb;;
+    '-jessie') deb8;;
+    '-ubuntu') ubt;;
+    '-ubuntu_ip') ubt_ip;;
+    '-ubuntu_null') ubt_null;;
+    '-fedora') fed;;
+    *) dinfo;;
+esac
